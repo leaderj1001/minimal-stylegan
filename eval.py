@@ -11,6 +11,8 @@ import math
 import os
 import cv2
 
+os.environ["CUDA_VISIBLE_DEVCIES"] = "1"
+
 
 @torch.no_grad()
 def get_mean_style(generator, device):
@@ -78,19 +80,28 @@ def main(args):
     step = int(math.log2(args.size)) - 2
 
     mean_style = get_mean_style(generator, 'cuda')
+    if not os.path.isdir('result'):
+        os.mkdir('result')
 
     with torch.no_grad():
         latent_z = torch.randn(36, 512)
         if args.cuda:
             latent_z = latent_z.cuda()
         img = generator(latent_z, step=step, alpha=1, mean_style=mean_style, style_weight=0.7)
-        utils.save_image(img, 'eval.png', nrow=6, normalize=True, range=(-1, 1))
+        dir_path = 'result/not_mixing'
+        if not os.path.isdir(dir_path):
+            os.mkdir(dir_path)
+        utils.save_image(img, os.path.join(dir_path, 'eval.png'), nrow=6, normalize=True, range=(-1, 1))
 
-    for j in range(20):
-        img = style_mixing(generator, step, mean_style, 5, 3, 'cuda')
-        utils.save_image(
-            img, f'sample_mixing_{j}.png', nrow=5 + 1, normalize=True, range=(-1, 1)
-        )
+        mixing_path = 'result/mixing'
+        if not os.path.isdir(mixing_path):
+            os.mkdir(mixing_path)
+        for j in range(20):
+            img = style_mixing(generator, step, mean_style, 5, 3, 'cuda')
+
+            utils.save_image(
+                img, os.path.join(mixing_path, f'sample_mixing_{j}.png'), nrow=5 + 1, normalize=True, range=(-1, 1)
+            )
 
 
 if __name__ == '__main__':
